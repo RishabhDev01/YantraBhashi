@@ -1,4 +1,4 @@
-# Yantrabhashi Online Classroom
+# Yantrabhashi 
 
 This project is an interactive web platform for writing, validating, and submitting code written in the Yantrabhashi toy programming language. It provides a full-stack solution with distinct roles for **Students** and **Instructors**, facilitating a learning and feedback loop.
 
@@ -34,14 +34,14 @@ Install dependencies and Run Server
 
 ```bash
   npm install
-  npm start
+  npm run dev
 ```
 
 Install dependencies and Run Frontend
 
 ```bash
   npm install
-  npm start
+  npm run dev
 ```
 
 
@@ -77,8 +77,7 @@ The application is built on a client-server architecture.
 
 ### Solution Diagram
 
-![solutiondiagram] (https://github.com/logicthread/YantraBhashi/blob/main/.docs/images/solutionDiagram.jpeg))
-
+![alt text](https://github.com/RishabhDev01/YantraBhashi/blob/main/.docs/images/solutionDiagram.jpeg)
 ## 🧑‍🏫 User Roles
 
 ### Student
@@ -90,7 +89,7 @@ The application is built on a client-server architecture.
 ### Instructor
 1.  **Dashboard View**: Access a centralized dashboard listing all submissions from every student.
 2.  **Review Submissions**: Select any submission to view the student's code and the original validation output.
-3.  **Provide Feedback**: Write and save comments or grades for each submission, which then become visible to the corresponding student.
+3.  **Provide Feedback**: Write and save comments for each submission, which then become visible to the corresponding student.
 
 ---
 
