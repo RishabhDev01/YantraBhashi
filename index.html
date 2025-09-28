@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Yantrabhashi Validator — UI (no JS)</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="card">
+    <h2>Yantrabhashi Validator — Tokenizer + LL(1) Parser (UI only)</h2>
+    <div class="small">
+      This is the UI skeleton (HTML + CSS). JavaScript validator code has been removed; 
+      <code>script</code> is intentionally empty.
+    </div>
+
+    <div class="row" style="margin-top:12px">
+      <div>
+        <textarea id="source"># Hello world example
+PADAM message:VARTTAI = "Hello World";
+CHATIMPU(message);
+
+# Sum example
+PADAM a:ANKHE;
+PADAM b:ANKHE;
+PADAM sum:ANKHE = 0;
+CHEPPU(a);
+CHEPPU(b);
+sum = a + b;
+CHATIMPU("The Sum is:");
+CHATIMPU(sum);
+
+# Conditional (else inline)
+PADAM username:VARTTAI;
+CHEPPU(username);
+ELAITHE (username == "Anirudh") [
+  CHATIMPU("Welcome Anirudh!");
+] ALAITHE [
+  CHATIMPU("Access Denied!");
+]
+
+# Loop
+PADAM sum2:ANKHE = 0;
+MALLI-MALLI (PADAM i:ANKHE = 1; i <= 5; i = i + 1) [
+  sum2 = sum2 + i;
+]
+CHATIMPU(sum2);
+</textarea>
+
+        <div style="margin-top:8px;display:flex;gap:8px">
+          <button id="validateBtn">Validate (LL(1))</button>
+          <button id="clearBtn" class="example-btn">Clear</button>
+          <button id="loadBtn" class="example-btn">Load Minimal</button>
+        </div>
+        <div class="small" style="margin-top:8px">
+          Grammar: PADAM decls, ELAITHE/ALAITHE, MALLI-MALLI loops, CHATIMPU/CHEPPU, 
+          integer-only arithmetic, semicolons required.
+        </div>
+      </div>
+
+      <div>
+        <div id="output" class="output" aria-live="polite"></div>
+        <div class="examples">
+          <button class="example-btn" data-snippet="undecl">Undeclared use</button>
+          <button class="example-btn" data-snippet="badloop">Bad loop step</button>
+          <button class="example-btn" data-snippet="nobr">Brackets in strings</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+   //validator logic
+  </script>
+</body>
+</html>
