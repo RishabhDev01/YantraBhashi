@@ -7,13 +7,16 @@ import {
   Route,
 } from "react-router-dom";
 import App from './App.jsx'
+import { Provider } from 'react-redux';
 import Submissions from './components/Submissions.jsx';
 import IndividualSubmission from './components/IndividualSubmission.jsx';
+import { store } from './store/index.js';
 
 createRoot(document.getElementById('root')).render(
   <React.StrictMode>
     {/* 1. Wrap the App with BrowserRouter */}
-    <BrowserRouter> 
+    <Provider store={store}>
+      <BrowserRouter> 
       {/* 2. Define the Routes */}
       <Routes>
         {/* Route for the main validator page */}
@@ -25,5 +28,6 @@ createRoot(document.getElementById('root')).render(
         {/* Optional: Add a 404/catch-all route */}
       </Routes>
     </BrowserRouter>
+    </Provider>
   </React.StrictMode>,
 )

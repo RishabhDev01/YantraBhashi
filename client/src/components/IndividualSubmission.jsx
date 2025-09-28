@@ -2,6 +2,8 @@
 
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { getCookie } from '../utils/cookies';
+import { jwtDecode } from 'jwt-decode';
 
 const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:4000';
 
@@ -18,6 +20,15 @@ export default function IndividualSubmission() {
     const [feedback, setFeedback] = useState('');
     const [isSaving, setIsSaving] = useState(false);
     const [saveMessage, setSaveMessage] = useState('');
+
+    const userJson = getCookie('token');
+        let decoded = null;
+        if(userJson){
+            decoded = jwtDecode(userJson);
+        } else {
+            navigate('/')
+        }
+        console.log(decoded)
 
     const fetchSubmission = async () => {
         setIsLoading(true);
@@ -126,7 +137,7 @@ export default function IndividualSubmission() {
             {/* Errors Section (Unchanged) */}
             {/* {submission.errors.length > 0 && (
                 <>
-                    <h3 style={{ color: '#F44336' }}>Errors ({submission.errorCount})</h3>
+                    </details><h3 style={{ color: '#F44336' }}>Errors ({submission.errorCount})</h3>
                     {submission.errors.map((e, idx) => (
                         <div key={idx} className="error" style={{ marginBottom: '8px', padding: '10px', border: '1px solid #F44336', backgroundColor: '#FFEBEE', color: '#333', borderRadius: '4px' }}>
                             <pre>{`Line ${e.line}, Col ${e.col}: ${e.msg}`}</pre>
@@ -170,7 +181,50 @@ export default function IndividualSubmission() {
             </div>}
             
             {/* 📝 Instructor Feedback Section */}
-            <div style={{ marginTop: '30px', borderTop: '1px solid #ccc', paddingTop: '20px' }}>
+
+            {decoded?.role === 'instructor' && (
+                <div style={{ marginTop: '30px', borderTop: '1px solid #ccc', paddingTop: '20px' }}>
+                    <h3 style={{ marginBottom: '10px' }}>Instructor Feedback</h3>
+                    
+                    <textarea
+                        value={feedback}
+                        onChange={(e) => setFeedback(e.target.value)}
+                        placeholder="Enter feedback for the student here..."
+                        rows="6"
+                        style={{
+                            width: '100%',
+                            padding: '10px',
+                            marginBottom: '10px',
+                            resize: 'vertical',
+                            border: '1px solid #ddd',
+                            borderRadius: '4px'
+                        }}
+                    />
+                    
+                    <button 
+                        onClick={saveFeedback} 
+                        disabled={isSaving}
+                        style={{
+                            backgroundColor: '#007bff', 
+                            color: 'white', 
+                            padding: '10px 15px', 
+                            border: 'none', 
+                            borderRadius: '4px',
+                            cursor: isSaving ? 'not-allowed' : 'pointer'
+                        }}
+                    >
+                        {isSaving ? 'Saving...' : 'Save Feedback'}
+                    </button>
+                    
+                    {saveMessage && (
+                        <p style={{ marginTop: '10px', color: saveMessage.startsWith('Error') ? '#F44336' : '#4CAF50' }}>
+                            {saveMessage}
+                        </p>
+                    )}
+                </div>
+            )}
+            
+            {/* <div style={{ marginTop: '30px', borderTop: '1px solid #ccc', paddingTop: '20px' }}>
                 <h3 style={{ marginBottom: '10px' }}>Instructor Feedback</h3>
                 
                 <textarea
@@ -208,7 +262,7 @@ export default function IndividualSubmission() {
                         {saveMessage}
                     </p>
                 )}
-            </div>
+            </div> */}
         </div>
     );
 }
