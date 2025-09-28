@@ -77,7 +77,7 @@ The application is built on a client-server architecture.
 
 ### Solution Diagram
 
-![solutiondiagram] (.docs/images/solutionDiagram.jpeg)
+![solutiondiagram] (https://github.com/logicthread/YantraBhashi/blob/main/.docs/images/solutionDiagram.jpeg))
 
 ## 🧑‍🏫 User Roles
 
