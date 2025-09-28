@@ -28,13 +28,13 @@ This project implements a browser-based validator for the Yantrabhashi toy progr
 
     - PADAM → variable declaration.
 
-    - IDENT → assignment.
+    - IDENT → variable name.
 
     - CHATIMPU → print.
 
     - CHEPPU → input.
 
-    - ELAITHE → if/else.
+    - ELAITHE/ALAITHE → if/else.
 
     - MALLI-MALLI → loop.
 
@@ -82,71 +82,7 @@ This project implements a browser-based validator for the Yantrabhashi toy progr
 
 - Shows token dump for debugging.
 
-## 📜 Parser Logic (Step by Step)
-
-### Declarations
-
-> PADAM a:ANKHE = 1;
->
-> PADAM msg:VARTTAI = "Hello";
-
-
-- Declares variable a as integer, msg as string.
-
-- Reports error if type mismatch at initialization.
-
-### Assignments
-
-> a = 10;
-
-
-- Looks up a in symbol table.
-
-- Checks type compatibility.
-
-### Print (CHATIMPU)
-
-> CHATIMPU("Sum is:", a);
-
-
-- Accepts string literals, variables, or numeric expressions.
-
-- Reports undeclared identifier if used.
-
-### Input (CHEPPU)
-
-> CHEPPU(a);
-
-- Only valid if a is declared.
-
-### Conditionals
-
-```
-ELAITHE (a < 5) [
-CHATIMPU("ok");
-] ALAITHE [
-CHATIMPU("no");
-]
-```
-
-- Condition checked for type correctness.
-
-- Both blocks must be enclosed in [ and ].
-
-### Loops
-
-```
-MALLI-MALLI (PADAM i:ANKHE = 0; i < 3; i = i + 1) [
-CHATIMPU(i);
-]
-```
-
-
-- Initialization must use PADAM.
-
-- Update must modify loop var.
-
-- Scope created for loop-local variables.
+##
 
 ## 📘 Examples (from assignment)
 
@@ -194,15 +130,6 @@ sum2 = sum2 + i;
 
 CHATIMPU(sum2);
 ```
-## 🛠 Error Handling Examples
-
-- ```a = 1;``` → ❌ undeclared variable a.
-
-- ```PADAM a:ANKHE = "hi";``` → ❌ type mismatch.
-
-- ```MALLI-MALLI (PADAM i:VARTTAI = "x"; i < 5; i = i + 1) [ ]``` → ❌ loop variable must be ANKHE.
-
-- ```ELAITHE (msg < 3) [ ]``` → ❌ non-integer in numeric comparison.
 
 ## ✅ Conclusion
 
@@ -215,3 +142,7 @@ This validator:
 - Provides detailed line/column error reporting.
 
 - Demonstrates assignment examples: Hello World, Sum, Conditional, Loop.
+
+## Assumptions
+
+- Due to ambiguity in requirements in VARTTAI datatype, we have added support for the string using VARTTAI.
