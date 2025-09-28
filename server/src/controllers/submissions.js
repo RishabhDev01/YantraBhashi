@@ -3,20 +3,21 @@ import Submission from '../models/Submission.js'
 
 export async function validateAndSave(req, res) {
   try {
-    const { source, userId } = req.body || {}
+    const { source, userId, username } = req.body || {}
     if (typeof source !== 'string' || source.trim().length === 0) {
       return res.status(400).json({ error: 'source is required' })
     }
 
     // const { tokens, errors } = runValidation(source)
     const {tokens, errors} = req.body.result;
-    // console.log("******************")
-    // console.log(req.body);
-    // console.log("******************")
+    console.log("******************")
+    console.log(req.body);
+    console.log("******************")
     const doc = await Submission.create({
       source,
       tokens,
       errors,
+      username: req.body.username,
       errorCount: errors.length,
       ok: errors.length === 0,
       meta: {

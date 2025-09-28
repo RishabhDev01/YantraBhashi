@@ -17,6 +17,7 @@ const SubmissionSchema = new mongoose.Schema({
   source: { type: String, required: true },
   tokens: [TokenSchema],
   errors: [ErrorSchema],
+  username: String,
   feedback: String,
   errorCount: { type: Number, required: true },
   ok: { type: Boolean, required: true },
