@@ -1,9 +1,6 @@
 // yantrabhashi-validator.js
-// (Browser-ready version of your tokenizer + LL(1) parser with UI wiring)
-
-// --- Config ---
 const KEYWORDS = new Set(['PADAM','ANKHE','VARTTAI','ELAITHE','ALAITHE','MALLI-MALLI','CHATIMPU','CHEPPU']);
-const SYMBOLS = ['==','!=','<=','>=','<','>','=','+','-','*','/','%','(',')','[',']',',',':',';'];
+const SYMBOLS = ['==','!=','<=','>=','<','>','=','+','-',':',';','(',')','[',']',','];
 
 // --- tokenizer ---
 function removeComments(src){
@@ -94,7 +91,6 @@ function tokenize(src){
   return tokens;
 }
 
-// --- Parser constructor + helpers ---
 function Parser(tokens){
   this.tokens = tokens; this.pos = 0; this.tok = tokens[0]; this.errors = []; this.symbols = [{}];
 }
@@ -121,7 +117,7 @@ Parser.prototype.lookup = function(name){
 // program -> stmt*
 Parser.prototype.parseProgram = function(){ while(this.tok.type!=='EOF'){ this.parseStmt(); } };
 
-// stmt dispatcher
+// stmt variants
 Parser.prototype.parseStmt = function(){
   if(this.tok.type==='KEYWORD' && this.tok.value==='PADAM'){ this.parsePadam(); return; }
   if(this.tok.type==='KEYWORD' && this.tok.value==='CHATIMPU'){ this.parseChat(); return; }
@@ -133,7 +129,7 @@ Parser.prototype.parseStmt = function(){
   this.error(`Unexpected token '${this.tok.value}'`, this.tok.line, this.tok.col); this.next();
 };
 
-// PADAM (declaration)
+// PADAM
 Parser.prototype.parsePadam = function(){
   this.expect('KEYWORD','PADAM');
 
@@ -200,35 +196,42 @@ Parser.prototype.parseAssignment = function(){
   }
 };
 
-// CHATIMPU (print)
+// CHATIMPU
 Parser.prototype.parseChat = function(){
   this.expect('KEYWORD','CHATIMPU');
   this.expect('SYMBOL','(');
 
   const parseOneArg = () => {
+    // STRING literal argument
     if(this.tok.type === 'STRING'){
+      // disallow binary ops on strings inside an argument
       const after = this.tokens[this.pos + 1];
       if(after && after.type === 'SYMBOL' && ['+','-','*','/','%'].includes(after.value)){
         this.error('BINARY OPERATIONS WITH STRINGS NOT SUPPORTED IN CHATIMPU', this.tok.line, this.tok.col);
+        // recover: skip until comma or ')'
         while(!(this.tok.type === 'SYMBOL' && (this.tok.value === ',' || this.tok.value === ')'))){
           if(this.tok.type === 'EOF') break;
           this.next();
         }
         return;
       }
+      // accept string literal
       this.next();
       return;
     }
 
+    // NUMBER => numeric expression (may include binary ops)
     if(this.tok.type === 'NUMBER'){
       this.parseExpr();
       return;
     }
 
+    // IDENT: either a string identifier (VARTTAI) OR numeric (ANKHE expression)
     if(this.tok.type === 'IDENT'){
       const name = this.tok.value;
       const def = this.lookup(name);
       if(!def){
+        // undeclared: report once and recover to next comma or ')'
         this.error(`Use of undeclared identifier '${name}' in CHATIMPU`, this.tok.line, this.tok.col);
         while(!(this.tok.type === 'SYMBOL' && (this.tok.value === ',' || this.tok.value === ')'))){
           if(this.tok.type === 'EOF') break;
@@ -238,14 +241,17 @@ Parser.prototype.parseChat = function(){
       }
 
       if(def.type === 'VARTTAI'){
+        // treat as string argument; consume ident only (no numeric parsing)
         this.next();
         return;
       } else {
+        // ANKHE: allow numeric expression starting at this identifier
         this.parseExpr();
         return;
       }
     }
 
+    // anything else -> error and recover to next comma or ')'
     this.error('CHATIMPU expects string literal, identifier, or numeric expression as each argument', this.tok.line, this.tok.col);
     while(!(this.tok.type === 'SYMBOL' && (this.tok.value === ',' || this.tok.value === ')'))){
       if(this.tok.type === 'EOF') break;
@@ -253,15 +259,18 @@ Parser.prototype.parseChat = function(){
     }
   };
 
+  // empty-arg list not allowed: expect at least one arg
   if(this.tok.type === 'SYMBOL' && this.tok.value === ')'){
     this.error('CHATIMPU requires at least one argument', this.tok.line, this.tok.col);
     this.next(); this.expect('SYMBOL',';');
     return;
   }
 
+  // parse first argument and any further comma-separated args
   parseOneArg();
   while(this.tok.type === 'SYMBOL' && this.tok.value === ','){
-    this.next();
+    this.next(); // consume comma
+    // allow trailing commas? we'll require an argument after comma
     if(this.tok.type === 'SYMBOL' && this.tok.value === ')'){
       this.error('Trailing comma in CHATIMPU argument list', this.tok.line, this.tok.col);
       break;
@@ -269,6 +278,7 @@ Parser.prototype.parseChat = function(){
     parseOneArg();
   }
 
+  // expect closing ')', then ';'
   this.expect('SYMBOL',')');
   this.expect('SYMBOL',';');
 };
@@ -322,11 +332,12 @@ Parser.prototype.parseIf = function(){
   this.symbols.pop();
 };
 
-// LOOP (loop-local scope before header so header declarations are local)
+// LOOP (fixed: create loop-local scope before parsing header so initializer, condition & step see the loop variable)
 Parser.prototype.parseLoop = function(){
   this.expect('KEYWORD','MALLI-MALLI');
   this.expect('SYMBOL','(');
 
+  // push loop-local scope BEFORE parsing header so PADAM in header is local to the loop
   this.symbols.push({});
 
   if(this.tok.type==='KEYWORD' && this.tok.value==='PADAM'){
@@ -340,6 +351,7 @@ Parser.prototype.parseLoop = function(){
   this.expect('SYMBOL',';');
 
   if(this.tok.type==='IDENT'){
+    // step: e.g. i = i + 1
     this.next();
     if(!this.expect('SYMBOL','=')) return;
     this.parseExpr();
@@ -350,9 +362,11 @@ Parser.prototype.parseLoop = function(){
   this.expect('SYMBOL',')');
   this.expect('SYMBOL','[');
 
+  // parse body in the same loop-local scope
   while(!(this.tok.type==='SYMBOL' && this.tok.value===']') && this.tok.type!=='EOF'){ this.parseStmt(); }
   this.expect('SYMBOL',']');
 
+  // pop loop-local scope
   this.symbols.pop();
 };
 
@@ -366,12 +380,14 @@ Parser.prototype.parsePadamInLoop = function(){
   }
   const ty=this.tok.value;
   this.next();
+  // init optional
   let initValueType = null;
   if(this.tok.type==='SYMBOL' && this.tok.value==='='){ this.next();
     if(this.tok.type === 'STRING'){ initValueType='STRING'; this.next(); }
     else { this.parseExpr(); initValueType='NUMBER'; }
   }
 
+  // type mismatch checks
   if(initValueType === 'STRING' && ty === 'ANKHE'){
     this.error(`Type mismatch: initializer is a string but '${name}' is declared ANKHE`, this.tok.line, this.tok.col);
   }
@@ -379,12 +395,14 @@ Parser.prototype.parsePadamInLoop = function(){
     this.error(`Type mismatch: initializer is numeric but '${name}' is declared VARTTAI`, this.tok.line, this.tok.col);
   }
 
+  // declare into current (loop-local) scope using helper
   if(ty === 'ANKHE' || ty === 'VARTTAI'){
     this.declare(name, ty);
   }
 };
 
-// Condition parsing (supports strings & numbers; relational ops only for numbers)
+// parseCondition: accepts NUMBER | STRING | IDENT on either side,
+// allows ==/!= for both strings and numbers, and <,>,<=,>= only for numbers.
 Parser.prototype.parseCondition = function(){
   const left = this.parseOperand();
   if(!left) return;
@@ -399,6 +417,7 @@ Parser.prototype.parseCondition = function(){
   const right = this.parseOperand();
   if(!right) return;
 
+  // If either side is IDENT, ensure declared (report once and stop)
   if(left.type === 'IDENT'){
     const def = this.lookup(left.value);
     if(!def){
@@ -414,6 +433,10 @@ Parser.prototype.parseCondition = function(){
     }
   }
 
+  // canonicalize kinds:
+  // - numeric literals => 'NUMBER'
+  // - string literals => 'STRING'
+  // - identifiers: ANKHE => 'NUMBER', VARTTAI => 'STRING'
   const kindLeft = (left.type === 'NUMBER') ? 'NUMBER'
                  : (left.type === 'STRING') ? 'STRING'
                  : (() => {
@@ -431,12 +454,14 @@ Parser.prototype.parseCondition = function(){
                     })();
 
   if(op === '==' || op === '!='){
+    // equality allowed for both numbers and strings but both sides must be same canonical kind
     if((kindLeft === 'NUMBER' && kindRight === 'NUMBER') || (kindLeft === 'STRING' && kindRight === 'STRING')){
       // OK
     } else {
       this.error('Type mismatch in equality comparison (both sides must be same type)', this.tok.line, this.tok.col);
     }
   } else {
+    // relational operators require numeric on both sides
     const isLeftNumeric = (kindLeft === 'NUMBER');
     const isRightNumeric = (kindRight === 'NUMBER');
     if(!isLeftNumeric){
@@ -448,6 +473,7 @@ Parser.prototype.parseCondition = function(){
   }
 };
 
+// parseOperand: allow NUMBER, STRING, or IDENT in conditions
 Parser.prototype.parseOperand = function(){
   if(this.tok.type === 'NUMBER'){
     const t = this.tok; this.next();
@@ -472,19 +498,27 @@ Parser.prototype.parseExpr = function(){
   }
 };
 
+// parseTerm: supports unary minus and normal term rules
 Parser.prototype.parseTerm = function(){
+  // unary minus support: if we see '-' then consume it and expect number/identifier/parenthesized expr next
   if(this.tok.type === 'SYMBOL' && this.tok.value === '-'){
-    this.next();
-    if(this.tok.type === 'NUMBER'){ this.next(); return; }
+    this.next(); // consume '-'
+    // allow unary minus before NUMBER, IDENT (variable), or parenthesized expression
+    if(this.tok.type === 'NUMBER'){
+      this.next();
+      return;
+    }
     if(this.tok.type === 'IDENT'){
       const name = this.tok.value;
       const line = this.tok.line, col = this.tok.col;
       const def = this.lookup(name);
       if(!def) this.error(`Use of undeclared identifier '${name}'`, line, col);
       else if(def.type !== 'ANKHE') this.error(`Non-integer identifier '${name}' used in numeric expression`, line, col);
-      this.next(); return;
+      this.next();
+      return;
     }
     if(this.tok.type === 'SYMBOL' && this.tok.value === '('){
+      // consume '(' and parse an expression, then expect ')'
       this.next();
       this.parseExpr();
       this.expect('SYMBOL',')');
@@ -494,6 +528,7 @@ Parser.prototype.parseTerm = function(){
     return;
   }
 
+  // normal term: NUMBER, IDENT, or parenthesized expression
   if(this.tok.type === 'NUMBER'){ this.next(); return; }
 
   if(this.tok.type === 'IDENT'){
@@ -515,63 +550,14 @@ Parser.prototype.parseTerm = function(){
   this.error('Expected number or identifier in expression', this.tok.line, this.tok.col);
 };
 
-// --- Runner (global function) ---
-function runValidation(src){
+export function runValidation(src){
   const tokens = tokenize(src);
   const p = new Parser(tokens);
   p.parseProgram();
   return { tokens, errors: p.errors };
 }
 
-// --- UI wiring (attach to index.html) ---
-(function attachUI(){
-  function whenReady(fn){
-    if(document.readyState === 'loading'){
-      document.addEventListener('DOMContentLoaded', fn);
-    } else fn();
-  }
-
-  whenReady(()=>{
-    const out = document.getElementById('output');
-    const validateBtn = document.getElementById('validateBtn');
-    const clearBtn = document.getElementById('clearBtn');
-    const loadBtn = document.getElementById('loadBtn');
-    const sourceEl = document.getElementById('source');
-
-    if(!out || !validateBtn || !clearBtn || !loadBtn || !sourceEl){
-      console.error('Yantrabhashi: missing DOM elements (check IDs).');
-      return;
-    }
-
-    validateBtn.addEventListener('click', ()=>{
-      out.innerHTML='';
-      const src = sourceEl.value;
-      const res = runValidation(src);
-      if(res.errors.length===0){
-        const el=document.createElement('div'); el.className='ok'; el.innerHTML='<pre>No syntax/semantic errors found.</pre>'; out.appendChild(el);
-      } else {
-        res.errors.forEach(e=>{
-          const el=document.createElement('div'); el.className='error';
-          const pre=document.createElement('pre');
-          pre.textContent = `Line ${e.line}, Col ${e.col}: ${e.msg}`;
-          el.appendChild(pre); out.appendChild(el);
-        });
-      }
-      const tbox=document.createElement('div'); tbox.className='small';
-      const pre=document.createElement('pre');
-      pre.textContent = res.tokens.map(t=>`${t.line}:${t.col} ${t.type}(${t.value})`).join('\n');
-      tbox.appendChild(pre); out.appendChild(tbox);
-    });
-
-    clearBtn.addEventListener('click', ()=>{ sourceEl.value=''; out.innerHTML=''; });
-    loadBtn.addEventListener('click', ()=>{ sourceEl.value='PADAM a:ANKHE = 1;\nCHATIMPU(a);'; });
-
-    document.querySelectorAll('.examples .example-btn').forEach(b=>b.addEventListener('click', e=>{
-      const s=e.currentTarget.dataset.snippet;
-      if(s==='undecl') sourceEl.value='a = b + 1;';
-      if(s==='badloop') sourceEl.value='MALLI-MALLI (PADAM i:ANKHE = 0; i < 10; i = i) [\n]';
-      if(s==='nobr') sourceEl.value='CHATIMPU("Hello [user]");';
-    }));
-  });
-})();
-
+// For Node.js compatibility
+// if(typeof module !== 'undefined' && module.exports){
+//   module.exports = { tokenize, Parser, runValidation };
+// }
